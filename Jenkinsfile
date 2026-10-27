@@ -1,21 +1,39 @@
+
 pipeline {
-  agent any
-  stages {
-    stage('Checkout') {
-      steps { checkout scm }
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                bat 'npm.cmd install'
+            }
+        }
+
+        stage('Syntax Check') {
+            steps {
+                bat 'node --check server.js'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                bat 'docker build -t it-asset-management:latest .'
+            }
+        }
     }
-    stage('Install dependencies') {
-      steps { sh 'npm install' }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed. Check the stage logs.'
+        }
     }
-    stage('Syntax check') {
-      steps { sh 'node --check server.js' }
-    }
-    stage('Build Docker image') {
-      steps { sh 'docker build -t it-asset-management:latest .' }
-    }
-  }
-  post {
-    success { echo 'Pipeline completed successfully.' }
-    failure { echo 'Pipeline failed. Check the stage logs.' }
-  }
 }
