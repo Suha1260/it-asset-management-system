@@ -1,4 +1,4 @@
-
+```groovy
 pipeline {
     agent any
 
@@ -18,6 +18,12 @@ pipeline {
         stage('Syntax Check') {
             steps {
                 bat 'node --check server.js'
+            }
+        }
+
+        stage('Automated Tests') {
+            steps {
+                bat 'npm.cmd test'
             }
         }
 
