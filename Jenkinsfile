@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -20,6 +21,15 @@ pipeline {
             }
         }
 
+        stage('Start Application') {
+            steps {
+                bat '''
+                    start "AssetApp" /B cmd /c "npm.cmd start > app.log 2>&1"
+                    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ready = $false; for ($i = 0; $i -lt 30; $i++) { try { Invoke-WebRequest http://localhost:3000 -UseBasicParsing -TimeoutSec 2 | Out-Null; $ready = $true; break } catch { Start-Sleep -Seconds 2 } }; if (-not $ready) { Get-Content app.log; exit 1 }"
+                '''
+            }
+        }
+
         stage('Automated Tests') {
             steps {
                 bat 'npm.cmd test'
@@ -34,6 +44,11 @@ pipeline {
     }
 
     post {
+        always {
+            bat '''
+                powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process -Filter \\"name = 'node.exe'\\" | Where-Object { $_.CommandLine -like '*server.js*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+            '''
+        }
         success {
             echo 'Pipeline completed successfully.'
         }
