@@ -1,0 +1,17 @@
+{
+  "name": "it-asset-management-system",
+  "version": "1.0.0",
+  "description": "Simple IT Asset Management System for DevOps laboratory exercises",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "mocha --timeout 10000"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "mocha": "^11.1.0",
+    "selenium-webdriver": "^4.29.0"
+  }
+}

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IT Asset Management System</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1050px; margin: 32px auto; padding: 0 16px; background:#f5f7fb; color:#182230; }
+    h1 { margin-bottom: 4px; } .sub { color:#596579; margin-top:0; }
+    .panel { background:white; border-radius:12px; padding:20px; margin:18px 0; box-shadow:0 2px 10px #18223012; }
+    form { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+    label { font-size:13px; display:flex; flex-direction:column; gap:6px; }
+    input, select, button { padding:10px; border:1px solid #ccd3df; border-radius:7px; font:inherit; }
+    button { cursor:pointer; background:#234fc7; color:white; border:0; } button.delete { background:#b42318; }
+    table { width:100%; border-collapse:collapse; background:white; } th,td { text-align:left; padding:10px; border-bottom:1px solid #e5e9f0; }
+    th { background:#edf1f8; } .actions { display:flex; gap:6px; } #message { min-height:20px; color:#234fc7; }
+    @media(max-width:650px) { table { font-size:12px; } th,td { padding:6px; } }
+  </style>
+</head>
+<body>
+  <h1>IT Asset Management System</h1>
+  <p class="sub">Register, view, update, and remove organization IT assets.</p>
+  <section class="panel">
+    <h2 id="formTitle">Register an asset</h2>
+    <form id="assetForm">
+      <input id="assetId" type="hidden">
+      <label>Asset name *<input id="name" required placeholder="e.g. Office Laptop"></label>
+      <label>Asset type *<select id="type" required><option value="">Choose type</option><option>Laptop</option><option>Desktop</option><option>Printer</option><option>Monitor</option><option>Router</option><option>Other</option></select></label>
+      <label>Serial number *<input id="serialNumber" required placeholder="e.g. LT-1002"></label>
+      <label>Assigned to<input id="assignedTo" placeholder="Employee/team"></label>
+      <label>Status<select id="status"><option>Available</option><option>In Use</option><option>Under Maintenance</option><option>Retired</option></select></label>
+      <button type="submit" id="saveButton">Save asset</button>
+      <button type="button" id="cancelButton" hidden>Cancel edit</button>
+    </form>
+    <p id="message" role="status"></p>
+  </section>
+  <section class="panel">
+    <h2>Asset inventory</h2>
+    <p id="count">Loading assets...</p>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Serial number</th><th>Assigned to</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="assetRows"></tbody>
+      </table>
+    </div>
+  </section>
+<script>
+const form = document.getElementById("assetForm");
+const message = document.getElementById("message");
+const rows = document.getElementById("assetRows");
+const val = id => document.getElementById(id).value.trim();
+
+async function loadAssets() {
+  const response = await fetch("/api/assets");
+  const assets = await response.json();
+  document.getElementById("count").textContent = `${assets.length} asset(s) registered`;
+  rows.replaceChildren();
+  assets.forEach(asset => {
+    const tr = document.createElement("tr");
+    [asset.id, asset.name, asset.type, asset.serialNumber, asset.assignedTo || "-", asset.status].forEach(value => {
+      const td = document.createElement("td"); td.textContent = value; tr.appendChild(td);
+    });
+    const actions = document.createElement("td");
+    const wrap = document.createElement("div"); wrap.className = "actions";
+    const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "Edit";
+    edit.addEventListener("click", () => startEdit(asset));
+    const del = document.createElement("button"); del.type = "button"; del.textContent = "Delete"; del.className = "delete";
+    del.addEventListener("click", () => deleteAsset(asset.id));
+    wrap.append(edit, del); actions.appendChild(wrap); tr.appendChild(actions); rows.appendChild(tr);
+  });
+}
+function startEdit(asset) {
+  document.getElementById("assetId").value = asset.id;
+  ["name","type","serialNumber","assignedTo","status"].forEach(key => document.getElementById(key).value = asset[key] || "");
+  document.getElementById("formTitle").textContent = "Update asset";
+  document.getElementById("saveButton").textContent = "Update asset";
+  document.getElementById("cancelButton").hidden = false;
+}
+function resetForm() {
+  form.reset(); document.getElementById("assetId").value = "";
+  document.getElementById("formTitle").textContent = "Register an asset";
+  document.getElementById("saveButton").textContent = "Save asset";
+  document.getElementById("cancelButton").hidden = true;
+}
+document.getElementById("cancelButton").addEventListener("click", resetForm);
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+  const id = val("assetId");
+  const payload = { name: val("name"), type: val("type"), serialNumber: val("serialNumber"), assignedTo: val("assignedTo"), status: val("status") };
+  const response = await fetch(id ? `/api/assets/${id}` : "/api/assets", {
+    method: id ? "PUT" : "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload)
+  });
+  const result = response.status === 204 ? null : await response.json();
+  if (!response.ok) { message.textContent = result.error || "Request failed"; return; }
+  message.textContent = id ? "Asset updated successfully." : "Asset registered successfully.";
+  resetForm(); await loadAssets();
+});
+async function deleteAsset(id) {
+  if (!confirm("Delete this asset?")) return;
+  const response = await fetch(`/api/assets/${id}`, {method:"DELETE"});
+  message.textContent = response.ok ? "Asset deleted." : "Could not delete asset.";
+  await loadAssets();
+}
+loadAssets().catch(() => { message.textContent = "Could not load assets. Is the server running?"; });
+</script>
+</body>
+</html>
