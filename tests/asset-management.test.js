@@ -1,4 +1,3 @@
-
 const { Builder, By, until } = require("selenium-webdriver");
 const assert = require("node:assert/strict");
 
@@ -27,7 +26,6 @@ describe("IT Asset Management UI", function () {
 
     it("shows the application heading", async function () {
         const heading = await driver.findElement(By.css("h1")).getText();
-
         assert.equal(heading, "IT Asset Management System");
     });
 
@@ -49,13 +47,11 @@ describe("IT Asset Management UI", function () {
         );
 
         const body = await driver.findElement(By.tagName("body")).getText();
-
         assert.ok(body.includes(unique));
     });
 
     it("shows an asset count", async function () {
         const count = await driver.findElement(By.id("count")).getText();
-
-        assert.match(count, /asset(s)? registered/i);
+        assert.match(count, /^\d+ asset\(s\) registered$/i);
     });
 });
